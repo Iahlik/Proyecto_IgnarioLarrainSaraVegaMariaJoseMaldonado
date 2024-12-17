@@ -47,12 +47,16 @@ def agregarPaqueteConDestino(paquete, destinos):
     con = None
     try:
         con = Conexion(host, user, password, db)
+        if not con:
+            print("Error al conectar con la base de datos.")
+            return False
 
         # 1. Insertar el paquete turístico
         sql_paquete = """
         INSERT INTO paquete_turistico (nombre_paquete, descripcion, precio_total, fecha_inicio, fecha_fin)
         VALUES (%s, %s, %s, %s, %s)
         """
+        
         cursor = con.ejecutaQuery(sql_paquete, (
             paquete.nombre_paquete,
             paquete.descripcion,
@@ -60,6 +64,18 @@ def agregarPaqueteConDestino(paquete, destinos):
             paquete.fecha_inicio,
             paquete.fecha_fin
         ))
+
+        if cursor is None:
+            print("Error al ejecutar la consulta de paquete turístico.")
+            return False
+        
+        con.commit()
+
+        # Verificar si se obtuvo un ID válido para el paquete
+        if cursor.lastrowid is None:
+            print("No se pudo obtener el ID del paquete insertado.")
+            return False
+
         paquete.id_paquete = cursor.lastrowid  # Capturar el ID del paquete
 
         # 2. Insertar los destinos relacionados

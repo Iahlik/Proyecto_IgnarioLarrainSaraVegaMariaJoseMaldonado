@@ -542,40 +542,68 @@ def menuDestinos():
             print(tabulate(error_msg, tablefmt="fancy_grid", stralign="center"))
             input("Presione Enter para continuar...")
 
-def generarPaquetesAleatorios():
+def agregarPaqueteConDestino(paquete, destinos):
     """
-    Genera una cantidad especificada de paquetes aleatorios con datos ficticios.
-    Pide al usuario la cantidad de paquetes a generar, y los inserta en la BD.
+    Inserta un paquete turístico y agrega los destinos relacionados en detalle_paquete.
+    - paquete: Objeto con atributos nombre_paquete, descripcion, precio_total, fecha_inicio, fecha_fin.
+    - destinos: Lista de diccionarios con id_destino.
     """
-    while True:
-        try:
-            cantidad = int(input("¿Cuántos paquetes aleatorios desea generar?: ").strip())
-            if cantidad <= 0:
-                print("La cantidad debe ser mayor a 0.")
-                continue
-            break
-        except ValueError:
-            print("Debe ingresar un número válido.")
+    con = None
+    try:
+        con = Conexion(host, user, password, db)
+        if not con:
+            print("Error al conectar con la base de datos.")
+            return False
 
-    # Generar paquetes usando el método generarPaqueteAleatorio
-    for i in range(cantidad):
-        paquete, destinos = Paquete.generarPaqueteAleatorio()  # Generar paquete y destinos
-        if paquete and destinos:
-            if paqueteCRUD.agregarPaqueteConDestino(paquete, destinos):
-                print(f"Paquete '{paquete.nombre_paquete}' generado y registrado con éxito.")
-            else:
-                print(f"Error al registrar el paquete '{paquete.nombre_paquete}'.")
-        else:
-            print("No se pudo generar el paquete debido a un error o falta de destinos.")
+        # Verificar si el nombre del paquete ya existe en la base de datos
+        sql_check = "SELECT COUNT(*) FROM paquete_turistico WHERE nombre_paquete = %s"
+        cursor = con.ejecutaQuery(sql_check, (paquete.nombre_paquete,))
+        count = cursor.fetchone()[0]
+        if count > 0:
+            print(f"El paquete '{paquete.nombre_paquete}' ya existe en la base de datos.")
+            return False
 
-    input("Presione Enter para continuar...")
+        # 1. Insertar el paquete turístico
+        sql_paquete = """
+        INSERT INTO paquete_turistico (nombre_paquete, descripcion, precio_total, fecha_inicio, fecha_fin)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor = con.ejecutaQuery(sql_paquete, (
+            paquete.nombre_paquete,
+            paquete.descripcion,
+            paquete.precio_total,
+            paquete.fecha_inicio,
+            paquete.fecha_fin
+        ))
 
-from tabulate import tabulate
-import os
-import DAO.CRUDPaquete as paqueteCRUD
-from DTO.Paquete import Paquete
-from datetime import datetime
+        if cursor is None:
+            print("Error al ejecutar la consulta de paquete turístico.")
+            return False
+        
+        con.commit()
 
+        # Verificar si se obtuvo un ID válido para el paquete
+        if cursor.lastrowid is None:
+            print("No se pudo obtener el ID del paquete insertado.")
+            return False
+
+        paquete.id_paquete = cursor.lastrowid  # Capturar el ID del paquete
+
+        # 2. Insertar los destinos relacionados
+        sql_detalle = "INSERT INTO detalle_paquete (id_paquete, id_destino) VALUES (%s, %s)"
+        for destino in destinos:
+            con.ejecutaQuery(sql_detalle, (paquete.id_paquete, destino['id_destino']))
+
+        con.commit()
+        return True
+    except Exception as e:
+        if con:
+            con.rollback()
+        print(f"Error al agregar paquete con destinos: {e}")
+        return False
+    finally:
+        if con:
+            con.desconectar()
 
 def menuPaquetes(nombre):
     while True:
