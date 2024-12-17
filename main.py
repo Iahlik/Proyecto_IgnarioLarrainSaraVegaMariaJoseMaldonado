@@ -542,69 +542,6 @@ def menuDestinos():
             print(tabulate(error_msg, tablefmt="fancy_grid", stralign="center"))
             input("Presione Enter para continuar...")
 
-def agregarPaqueteConDestino(paquete, destinos):
-    """
-    Inserta un paquete turístico y agrega los destinos relacionados en detalle_paquete.
-    - paquete: Objeto con atributos nombre_paquete, descripcion, precio_total, fecha_inicio, fecha_fin.
-    - destinos: Lista de diccionarios con id_destino.
-    """
-    con = None
-    try:
-        con = Conexion(host, user, password, db)
-        if not con:
-            print("Error al conectar con la base de datos.")
-            return False
-
-        # Verificar si el nombre del paquete ya existe en la base de datos
-        sql_check = "SELECT COUNT(*) FROM paquete_turistico WHERE nombre_paquete = %s"
-        cursor = con.ejecutaQuery(sql_check, (paquete.nombre_paquete,))
-        count = cursor.fetchone()[0]
-        if count > 0:
-            print(f"El paquete '{paquete.nombre_paquete}' ya existe en la base de datos.")
-            return False
-
-        # 1. Insertar el paquete turístico
-        sql_paquete = """
-        INSERT INTO paquete_turistico (nombre_paquete, descripcion, precio_total, fecha_inicio, fecha_fin)
-        VALUES (%s, %s, %s, %s, %s)
-        """
-        cursor = con.ejecutaQuery(sql_paquete, (
-            paquete.nombre_paquete,
-            paquete.descripcion,
-            paquete.precio_total,
-            paquete.fecha_inicio,
-            paquete.fecha_fin
-        ))
-
-        if cursor is None:
-            print("Error al ejecutar la consulta de paquete turístico.")
-            return False
-        
-        con.commit()
-
-        # Verificar si se obtuvo un ID válido para el paquete
-        if cursor.lastrowid is None:
-            print("No se pudo obtener el ID del paquete insertado.")
-            return False
-
-        paquete.id_paquete = cursor.lastrowid  # Capturar el ID del paquete
-
-        # 2. Insertar los destinos relacionados
-        sql_detalle = "INSERT INTO detalle_paquete (id_paquete, id_destino) VALUES (%s, %s)"
-        for destino in destinos:
-            con.ejecutaQuery(sql_detalle, (paquete.id_paquete, destino['id_destino']))
-
-        con.commit()
-        return True
-    except Exception as e:
-        if con:
-            con.rollback()
-        print(f"Error al agregar paquete con destinos: {e}")
-        return False
-    finally:
-        if con:
-            con.desconectar()
-
 def menuPaquetes(nombre):
     while True:
         # Limpiar la pantalla
@@ -833,7 +770,7 @@ def menuPaquetes(nombre):
                 print(tabulate(mensaje, tablefmt="fancy_grid", stralign="center"))
                 input("Presione Enter para continuar...")
                 continue
-            
+        
             # Mostrar los paquetes en una tabla
             table_data = [
                 [p['id_paquete'], p['nombre_paquete'], p['descripcion'], p['precio_total'],
