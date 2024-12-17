@@ -57,6 +57,9 @@ def agregarPaqueteConDestino(paquete, destinos):
         VALUES (%s, %s, %s, %s, %s)
         """
         
+        # Imprimir los datos antes de la ejecución para verificar que todo esté correcto
+        print(f"Insertando paquete: {paquete.nombre_paquete}, {paquete.descripcion}, {paquete.precio_total}, {paquete.fecha_inicio}, {paquete.fecha_fin}")
+        
         cursor = con.ejecutaQuery(sql_paquete, (
             paquete.nombre_paquete,
             paquete.descripcion,
@@ -94,30 +97,51 @@ def agregarPaqueteConDestino(paquete, destinos):
         if con:
             con.desconectar()
 
-def obtenerPaquetesConDestinos():
+def obtenerPaquetesConDestinos(idPaquete=None):
     """
     Devuelve una lista de paquetes junto con sus destinos asociados.
+    Si se pasa un idPaquete, devuelve solo ese paquete con sus destinos.
     """
     try:
         con = Conexion(host, user, password, db)
-        sql = """
-        SELECT 
-            pt.id_paquete, 
-            pt.nombre_paquete, 
-            pt.descripcion, 
-            pt.precio_total, 
-            pt.fecha_inicio, 
-            pt.fecha_fin,
-            GROUP_CONCAT(d.nombre SEPARATOR ', ') AS destinos
-        FROM paquete_turistico pt
-        LEFT JOIN detalle_paquete dp ON pt.id_paquete = dp.id_paquete
-        LEFT JOIN destino d ON dp.id_destino = d.id_destino
-        GROUP BY pt.id_paquete
-        ORDER BY pt.id_paquete;
-        """
-        cursor = con.ejecutaQuery(sql)
-        paquetes = cursor.fetchall()
-        return paquetes
+        
+        if idPaquete:
+            # Si se pasa un ID, obtener un paquete específico con sus destinos
+            sql = """
+            SELECT 
+                pt.id_paquete, 
+                pt.nombre_paquete, 
+                pt.descripcion, 
+                pt.precio_total, 
+                pt.fecha_inicio, 
+                pt.fecha_fin,
+                GROUP_CONCAT(d.nombre SEPARATOR ', ') AS destinos
+            FROM paquete_turistico pt
+            LEFT JOIN detalle_paquete dp ON pt.id_paquete = dp.id_paquete
+            LEFT JOIN destino d ON dp.id_destino = d.id_destino
+            WHERE pt.id_paquete = %s
+            GROUP BY pt.id_paquete;
+            """
+            cursor = con.ejecutaQuery(sql, (idPaquete,))
+        else:
+            # Si no se pasa un ID, obtener todos los paquetes con destinos
+            sql = """
+            SELECT 
+                pt.id_paquete, 
+                pt.nombre_paquete, 
+                pt.descripcion, 
+                pt.precio_total, 
+                pt.fecha_inicio, 
+                pt.fecha_fin,
+                GROUP_CONCAT(d.nombre SEPARATOR ', ') AS destinos
+            FROM paquete_turistico pt
+            LEFT JOIN detalle_paquete dp ON pt.id_paquete = dp.id_paquete
+            LEFT JOIN destino d ON dp.id_destino = d.id_destino
+            GROUP BY pt.id_paquete;
+            """
+            cursor = con.ejecutaQuery(sql)
+
+        return cursor.fetchall()
     except Exception as e:
         print(f"Error al obtener paquetes con destinos: {e}")
         return []

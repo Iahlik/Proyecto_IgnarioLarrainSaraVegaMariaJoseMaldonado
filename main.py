@@ -639,18 +639,19 @@ def menuPaquetes(nombre):
             
             paquetes = paqueteCRUD.obtenerPaquetesConDestinos()
             if paquetes:
-                table_data = [
-                    [
+                table_data = []
+                for p in paquetes:
+                    # Asegurarse de que 'destinos' está presente y no es None
+                    destinos_str = p['destinos'] if p.get('destinos') else "No tiene destinos"
+                    table_data.append([
                         p['id_paquete'], 
                         p['nombre_paquete'], 
                         p['descripcion'], 
                         p['precio_total'], 
                         p['fecha_inicio'], 
                         p['fecha_fin'], 
-                        p['destinos'] if p['destinos'] else "No tiene destinos"
-                    ] 
-                    for p in paquetes
-                ]
+                        destinos_str
+                    ])
                 headers_paquetes = ["ID", "Nombre", "Descripción", "Precio", "Inicio", "Fin", "Destinos"]
                 print(tabulate(table_data, headers=headers_paquetes, tablefmt="fancy_grid", stralign="left"))
             else:
@@ -676,7 +677,10 @@ def menuPaquetes(nombre):
                 continue
             
             paquete = paqueteCRUD.mostrarUno(idPaquete)
-            if paquete and paquete['fecha_inicio'] != "0000-00-00":
+            if paquete:
+                # Asegurarse de que 'destinos' está presente y no es None
+                destinos_str = paquete['destinos'] if paquete.get('destinos') else "No tiene destinos"
+                
                 table_data = [
                     [
                         paquete['id_paquete'], 
@@ -684,10 +688,11 @@ def menuPaquetes(nombre):
                         paquete['descripcion'],
                         paquete['precio_total'], 
                         paquete['fecha_inicio'], 
-                        paquete['fecha_fin']
+                        paquete['fecha_fin'],
+                        destinos_str  # Mostrar destinos asociados
                     ]
                 ]
-                headers_paquete = ["ID", "Nombre", "Descripción", "Precio", "Inicio", "Fin"]
+                headers_paquete = ["ID", "Nombre", "Descripción", "Precio", "Inicio", "Fin", "Destinos"]
                 print(tabulate(table_data, headers=headers_paquete, tablefmt="fancy_grid", stralign="left"))
             else:
                 mensaje = [["No se encontró un paquete válido con ese ID."]]
@@ -713,21 +718,22 @@ def menuPaquetes(nombre):
             
             cantidad = int(cantidad_input)
             paquetes = paqueteCRUD.mostrarParcial(cantidad)
-            paquetes_validos = [p for p in paquetes if p['fecha_inicio'] != "0000-00-00"]
-            if paquetes_validos:
-                table_data = [
-                    [p['id_paquete'], p['nombre_paquete'], p['descripcion'], p['precio_total'],
-                     p['fecha_inicio'], p['fecha_fin']] 
-                    for p in paquetes_validos
-                ]
-                headers_paquetes = ["ID", "Nombre", "Descripción", "Precio", "Inicio", "Fin"]
+            if paquetes:
+                table_data = []
+                for p in paquetes:
+                    # Asegurarse de que 'destinos' está presente y no es None
+                    destinos_str = p['destinos'] if p.get('destinos') else "No tiene destinos"
+                    table_data.append([
+                        p['id_paquete'], p['nombre_paquete'], p['descripcion'], p['precio_total'],
+                        p['fecha_inicio'], p['fecha_fin'], destinos_str
+                    ])
+                headers_paquetes = ["ID", "Nombre", "Descripción", "Precio", "Inicio", "Fin", "Destinos"]
                 print(tabulate(table_data, headers=headers_paquetes, tablefmt="fancy_grid", stralign="left"))
             else:
                 mensaje = [["No hay paquetes turísticos disponibles para mostrar."]]
                 print(tabulate(mensaje, tablefmt="fancy_grid", stralign="center"))
             
             input("Presione Enter para continuar...")
-        
         elif opcion == "4":
             # Eliminar paquete
             os.system('cls' if os.name == 'nt' else 'clear')
